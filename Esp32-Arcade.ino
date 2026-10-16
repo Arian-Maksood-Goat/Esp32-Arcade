@@ -308,7 +308,7 @@ bool    garPaused = false;
 volatile bool garModeRequested = false;
 bool    garSwallowInput = false;  // clear one frame of edges after pause menu
 
-static constexpr size_t GAME_FILE_MAX = 16384;
+static constexpr size_t GAME_FILE_MAX = 65536;
 static constexpr uint8_t GAR_MAX_SPRITES = 32;
 
 // Fast, allocation-free scan validation: header/codeLen and the optional AST1
@@ -1530,13 +1530,13 @@ void giEndFrame() {
 */
 
 static constexpr size_t   GAR_MAX_FILE   = GAME_FILE_MAX;
-static constexpr uint8_t  GAR_STACK      = 48;
-static constexpr uint8_t  GAR_VARS       = 64;
-static constexpr uint16_t GAR_MEM        = 256;
-static constexpr uint8_t  GAR_CALL_DEPTH = 8;
-static constexpr uint8_t  GAR_LOCALS = 64;
-static constexpr uint32_t GAR_BUDGET = 30000;
-static constexpr uint32_t GAR_RENDER_BUDGET = 20000;
+static constexpr uint8_t  GAR_STACK      = 128;
+static constexpr uint16_t GAR_VARS       = 256;
+static constexpr uint16_t GAR_MEM        = 1024;
+static constexpr uint8_t  GAR_CALL_DEPTH = 16;
+static constexpr uint8_t  GAR_LOCALS = 128;
+static constexpr uint32_t GAR_BUDGET = 100000;
+static constexpr uint32_t GAR_RENDER_BUDGET = 80000;
 
 uint8_t *garBase = nullptr;
 uint8_t *garCode = nullptr;
@@ -1938,7 +1938,7 @@ static void garDrawRectClipped(int32_t x, int32_t y, int32_t w, int32_t h, bool 
   if (xr >= 0 && xr < 128 && xr != x) display.drawFastVLine((int16_t)xr, t, b - t, C_ON);
 }
 
-static uint8_t garLineCode(double x, double y) {
+static uint8_t garLineCode(int64_t x, int64_t y) {
   uint8_t c = 0;
   if (x < 0) c |= 1;
   else if (x > 127) c |= 2;
@@ -1947,7 +1947,7 @@ static uint8_t garLineCode(double x, double y) {
   return c;
 }
 static void garDrawLineClipped(int32_t ix0, int32_t iy0, int32_t ix1, int32_t iy1) {
-  double x0 = ix0, y0 = iy0, x1 = ix1, y1 = iy1;
+  int64_t x0 = ix0, y0 = iy0, x1 = ix1, y1 = iy1;
   for (uint8_t tries = 0; tries < 8; ++tries) {
     const uint8_t c0 = garLineCode(x0, y0), c1 = garLineCode(x1, y1);
     if ((c0 | c1) == 0) {
@@ -1956,7 +1956,7 @@ static void garDrawLineClipped(int32_t ix0, int32_t iy0, int32_t ix1, int32_t iy
     }
     if (c0 & c1) return;
     const uint8_t out = c0 ? c0 : c1;
-    double x = 0, y = 0;
+    int64_t x = 0, y = 0;
     if (out & 8) {
       if (y1 == y0) return;
       y = 63; x = x0 + (x1 - x0) * (y - y0) / (y1 - y0);
